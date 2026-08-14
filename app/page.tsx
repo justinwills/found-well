@@ -279,7 +279,7 @@ export default function Home() {
               <SearchPresets onSelectPreset={handleSelectPreset} />
 
               {/* Main Document Form */}
-              <div className="bg-white/90 border border-line rounded-sm shadow-sm p-6 sm:p-10">
+              <div className="bg-white border border-line rounded-2xl shadow-xl p-6 sm:p-10 space-y-6">
                 <form onSubmit={handleSubmit} className="space-y-6">
                   <div>
                     <Label htmlFor="about">In your own words</Label>
@@ -341,7 +341,7 @@ export default function Home() {
                     <button
                       type="submit"
                       disabled={status === "loading"}
-                      className="w-full py-4 bg-ink text-paper font-bold rounded-sm hover:bg-ink-soft active:scale-[0.99] disabled:opacity-60 transition-all cursor-pointer shadow-xs flex items-center justify-center gap-2"
+                      className="w-full py-4 bg-ink text-paper font-semibold text-base rounded-xl hover:bg-ink-soft active:scale-[0.99] disabled:opacity-60 transition-all cursor-pointer shadow-md flex items-center justify-center gap-2"
                     >
                       {status === "loading" ? (
                         <span>Searching Live Web...</span>

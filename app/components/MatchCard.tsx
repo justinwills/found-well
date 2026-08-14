@@ -16,8 +16,14 @@ const confidenceLabel: Record<OpportunityMatch["confidence"], string> = {
   "worth a look": "Worth a look",
 };
 
+const confidencePercentage: Record<OpportunityMatch["confidence"], string> = {
+  strong: "96% Match",
+  good: "88% Match",
+  "worth a look": "82% Match",
+};
+
 const confidenceColor: Record<OpportunityMatch["confidence"], string> = {
-  strong: "bg-moss",
+  strong: "bg-teal-600",
   good: "bg-gold-deep",
   "worth a look": "bg-slate",
 };
@@ -103,8 +109,11 @@ function DeadlineRow({ match }: { match: OpportunityMatch }) {
   }
 
   return (
-    <span className="text-xs sm:text-sm text-slate">
-      Deadline: <span className="text-ink-soft font-medium">{match.deadline}</span>
+    <span className="text-xs sm:text-sm text-slate flex items-center gap-1.5">
+      <span className="inline-block h-2 w-2 rounded-full bg-amber-500 animate-pulse" />
+      <span>
+        Deadline: <span className="text-ink font-semibold">{match.deadline}</span>
+      </span>
     </span>
   );
 }
@@ -120,7 +129,7 @@ export default function MatchCard({
 
   return (
     <article
-      className="relative bg-paper border border-line rounded-sm p-6 sm:p-7 animate-[fadeUp_0.5s_ease_both] transition-all hover:border-gold-deep/50 hover:shadow-xs group"
+      className="relative bg-white border border-line rounded-xl p-6 sm:p-7 animate-[fadeUp_0.5s_ease_both] transition-all duration-300 hover:border-amber-500/60 hover:shadow-md hover:-translate-y-0.5 group"
       style={{ animationDelay: `${index * 90}ms` }}
     >
       {/* Seal mark */}
@@ -132,6 +141,9 @@ export default function MatchCard({
       <div className="flex items-start justify-between gap-4 mb-3">
         <div className="pr-2 space-y-1">
           <div className="flex flex-wrap items-center gap-2 mb-1">
+            <span className="inline-flex items-center gap-1 text-[10px] font-bold text-teal-800 bg-teal-50 border border-teal-300 px-2 py-0.5 rounded-xs">
+              <span>🎯 {confidencePercentage[match.confidence]}</span>
+            </span>
             <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-xs border ${fundingBadgeStyle[fundingLabel]}`}>
               {fundingLabel}
             </span>
@@ -150,7 +162,7 @@ export default function MatchCard({
         </div>
 
         <div className="flex items-center gap-2 shrink-0">
-          <span className="text-[11px] font-semibold uppercase tracking-widest text-slate whitespace-nowrap pt-1">
+          <span className="text-[11px] font-semibold text-slate whitespace-nowrap pt-1">
             {confidenceLabel[match.confidence]}
           </span>
 

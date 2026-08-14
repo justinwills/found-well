@@ -1,22 +1,18 @@
 @import "tailwindcss";
 
 :root {
-  --paper: #faf8f3;
-  --ink: #12213d;
-  --ink-soft: #1c2f4f;
-  --slate: #5b6478;
-  --gold: #d4a24c;
-  --gold-deep: #b8843a;
-  --moss: #4a7862;
-  --line: #dcd6c9;
+  --paper: #f8fafc;
+  --ink: #0f172a;
+  --ink-soft: #1e293b;
+  --slate: #475569;
+  --gold: #f59e0b;
+  --gold-deep: #d97706;
+  --teal: #0d9488;
+  --moss: #059669;
+  --line: #e2e8f0;
 
-  /* Local font stacks — a warm high-contrast serif for display, a clean
-     humanist sans for body/UI. No webfont fetch, so the build never
-     depends on network access to a fonts CDN. */
-  --font-display: Georgia, "Iowan Old Style", "Palatino Linotype", "URW Palladio L",
-    "P052", serif;
-  --font-body: -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial,
-    "Noto Sans", sans-serif;
+  --font-display: 'Instrument Serif', Georgia, serif;
+  --font-body: 'Plus Jakarta Sans', -apple-system, sans-serif;
 }
 
 @theme inline {
@@ -26,6 +22,7 @@
   --color-slate: var(--slate);
   --color-gold: var(--gold);
   --color-gold-deep: var(--gold-deep);
+  --color-teal: var(--teal);
   --color-moss: var(--moss);
   --color-line: var(--line);
   --font-display: var(--font-display);
@@ -128,4 +125,16 @@ html {
 ::-webkit-scrollbar-thumb:hover {
   background: rgba(91, 100, 120, 0.4);
 }
+
+.bg-dot-pattern {
+  background-image: radial-gradient(#cbd5e1 1px, transparent 1px);
+  background-size: 20px 20px;
+}
+
+.glass-card {
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(226, 232, 240, 0.8);
+}
+
 
