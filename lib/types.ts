@@ -9,6 +9,7 @@ export interface StudentProfile {
 }
 
 export interface OpportunityMatch {
+  id?: string;
   name: string;
   organization: string;
   whyItFits: string;
@@ -25,6 +26,17 @@ export interface OpportunityMatch {
   deadlineStatus: "open" | "rolling" | "unclear";
   sourceUrl: string;
   confidence: "strong" | "good" | "worth a look";
+  estimatedFunding?: string;
+  eligibilityTags?: string[];
+}
+
+export type ApplicationStatus = "Interested" | "Applying" | "Submitted" | "Awarded";
+
+export interface SavedOpportunity extends OpportunityMatch {
+  id: string;
+  savedAt: string;
+  status: ApplicationStatus;
+  userNotes?: string;
 }
 
 export interface MatchResponse {
@@ -35,3 +47,4 @@ export interface MatchResponse {
 export interface MatchErrorResponse {
   error: string;
 }
+
