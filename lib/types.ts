@@ -61,3 +61,17 @@ export interface MatchErrorResponse {
   error: string;
 }
 
+export interface SOPStrategy {
+  targetProgram: string;
+  winningAngle: string;
+  recommendedTheme: string;
+  essayOutline: {
+    hook: string;
+    academicBackground: string;
+    whyThisProgram: string;
+    futureImpact: string;
+  };
+  cvRecommendations: string[];
+  recommendationLetterTips: string[];
+}
+

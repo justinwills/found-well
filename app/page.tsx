@@ -654,6 +654,7 @@ export default function Home() {
       {selectedModalMatch && (
         <OpportunityModal
           match={selectedModalMatch}
+          profile={profile}
           onClose={() => setSelectedModalMatch(null)}
           onSaveToggle={handleToggleSave}
           isSaved={savedList.some(

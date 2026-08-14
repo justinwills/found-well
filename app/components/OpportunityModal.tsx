@@ -1,17 +1,22 @@
 "use client";
 
 import { useState } from "react";
-import type { OpportunityMatch, SavedOpportunity } from "@/lib/types";
+import type { OpportunityMatch, SavedOpportunity, StudentProfile, SOPStrategy } from "@/lib/types";
 
 interface OpportunityModalProps {
   match: OpportunityMatch | null;
+  profile?: StudentProfile;
   onClose: () => void;
   onSaveToggle: (match: OpportunityMatch) => void;
   isSaved: boolean;
 }
 
-export default function OpportunityModal({ match, onClose, onSaveToggle, isSaved }: OpportunityModalProps) {
+export default function OpportunityModal({ match, profile, onClose, onSaveToggle, isSaved }: OpportunityModalProps) {
   const [copied, setCopied] = useState(false);
+  const [sopStrategy, setSopStrategy] = useState<SOPStrategy | null>(null);
+  const [loadingSOP, setLoadingSOP] = useState(false);
+  const [sopError, setSopError] = useState("");
+  const [copiedSOP, setCopiedSOP] = useState(false);
 
   if (!match) return null;
 
@@ -20,6 +25,58 @@ export default function OpportunityModal({ match, onClose, onSaveToggle, isSaved
     navigator.clipboard.writeText(match.sourceUrl);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+  }
+
+  async function handleGenerateSOP() {
+    setLoadingSOP(true);
+    setSopError("");
+    try {
+      const res = await fetch("/api/sop-strategy", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ profile, match }),
+      });
+      if (!res.ok) {
+        throw new Error("Failed to generate SOP strategy");
+      }
+      const data: SOPStrategy = await res.json();
+      setSopStrategy(data);
+    } catch {
+      setSopError("Couldn't generate strategy blueprint. Please try again.");
+    } finally {
+      setLoadingSOP(false);
+    }
+  }
+
+  function copySOPBlueprint() {
+    if (!sopStrategy) return;
+    const text = `=== SOP STRATEGY BLUEPRINT: ${sopStrategy.targetProgram} ===
+
+WINNING NARRATIVE ANGLE:
+${sopStrategy.winningAngle}
+
+ESSAY OUTLINE:
+1. Hook & Catalyst:
+${sopStrategy.essayOutline.hook}
+
+2. Academic & Technical Foundation:
+${sopStrategy.essayOutline.academicBackground}
+
+3. Fit with Program & Values:
+${sopStrategy.essayOutline.whyThisProgram}
+
+4. Future Impact & Vision:
+${sopStrategy.essayOutline.futureImpact}
+
+CV TWEAKS FOR THIS AWARD:
+${sopStrategy.cvRecommendations.map((t) => `• ${t}`).join("\n")}
+
+RECOMMENDER TALKING POINTS:
+${sopStrategy.recommendationLetterTips.map((t) => `• ${t}`).join("\n")}
+`;
+    navigator.clipboard.writeText(text);
+    setCopiedSOP(true);
+    setTimeout(() => setCopiedSOP(false), 2500);
   }
 
   // Generate dynamic checklist items based on opportunity details
@@ -145,6 +202,101 @@ export default function OpportunityModal({ match, onClose, onSaveToggle, isSaved
                 <p className="text-xs font-medium text-ink mt-0.5">{match.eligibilityCheck?.nationalityEligible || "International Eligible"}</p>
               </div>
             </div>
+          </div>
+
+          {/* AI Statement of Purpose Co-Pilot */}
+          <div className="bg-gradient-to-br from-amber-50/80 via-white to-white p-5 rounded-sm border border-gold/40 shadow-xs">
+            <div className="flex items-center justify-between gap-2 mb-3">
+              <div className="flex items-center gap-2">
+                <span className="flex h-2 w-2 rounded-full bg-gold-deep animate-pulse" />
+                <h3 className="text-xs font-bold uppercase tracking-wider text-gold-deep">
+                  AI Essay & Strategy Co-Pilot
+                </h3>
+              </div>
+              {sopStrategy && (
+                <button
+                  onClick={copySOPBlueprint}
+                  className="text-xs font-semibold text-gold-deep hover:text-ink transition-colors cursor-pointer flex items-center gap-1"
+                >
+                  <span>{copiedSOP ? "Copied to Clipboard!" : "Copy Full SOP Blueprint 📋"}</span>
+                </button>
+              )}
+            </div>
+
+            {!sopStrategy && !loadingSOP && (
+              <div className="text-center py-4">
+                <p className="text-xs text-slate mb-3">
+                  Generate a customized Statement of Purpose outline, winning narrative angle, and CV tweaks tailored to {match.name}.
+                </p>
+                <button
+                  onClick={handleGenerateSOP}
+                  className="px-4 py-2.5 bg-gold-deep text-white font-semibold text-xs rounded-sm hover:bg-ink transition-all cursor-pointer shadow-xs inline-flex items-center gap-2"
+                >
+                  <span>✨ Generate Winning SOP Strategy</span>
+                </button>
+                {sopError && <p className="text-xs text-red-600 mt-2">{sopError}</p>}
+              </div>
+            )}
+
+            {loadingSOP && (
+              <div className="py-6 text-center space-y-2">
+                <span className="inline-block animate-spin h-5 w-5 border-2 border-gold-deep border-t-transparent rounded-full" />
+                <p className="text-xs font-medium text-ink-soft">Analyzing scholarship criteria & building SOP blueprint...</p>
+              </div>
+            )}
+
+            {sopStrategy && (
+              <div className="space-y-4 animate-fade-in text-xs sm:text-sm">
+                {/* Winning Angle Banner */}
+                <div className="bg-white p-3.5 rounded-xs border-l-3 border-gold-deep shadow-2xs">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate block mb-1">Recommended Narrative Hook</span>
+                  <p className="text-ink font-medium leading-relaxed italic">&ldquo;{sopStrategy.winningAngle}&rdquo;</p>
+                </div>
+
+                {/* 4-Part Essay Outline */}
+                <div className="space-y-2">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate block">4-Paragraph Essay Blueprint</span>
+                  <div className="grid sm:grid-cols-2 gap-2 text-xs">
+                    <div className="bg-white p-3 rounded-xs border border-line">
+                      <span className="font-bold text-ink block mb-0.5">1. Hook & Personal Catalyst</span>
+                      <p className="text-slate leading-relaxed">{sopStrategy.essayOutline.hook}</p>
+                    </div>
+                    <div className="bg-white p-3 rounded-xs border border-line">
+                      <span className="font-bold text-ink block mb-0.5">2. Academic & Tech Rigor</span>
+                      <p className="text-slate leading-relaxed">{sopStrategy.essayOutline.academicBackground}</p>
+                    </div>
+                    <div className="bg-white p-3 rounded-xs border border-line">
+                      <span className="font-bold text-ink block mb-0.5">3. Program & Values Fit</span>
+                      <p className="text-slate leading-relaxed">{sopStrategy.essayOutline.whyThisProgram}</p>
+                    </div>
+                    <div className="bg-white p-3 rounded-xs border border-line">
+                      <span className="font-bold text-ink block mb-0.5">4. Long-Term Vision</span>
+                      <p className="text-slate leading-relaxed">{sopStrategy.essayOutline.futureImpact}</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Resume Tweaks & Recommender Tips */}
+                <div className="grid sm:grid-cols-2 gap-3 text-xs pt-1">
+                  <div className="bg-white p-3 rounded-xs border border-line">
+                    <span className="font-bold text-ink block mb-1">📄 3 Resume Tweaks for this Award</span>
+                    <ul className="space-y-1 text-slate list-disc pl-4">
+                      {sopStrategy.cvRecommendations.map((item, idx) => (
+                        <li key={idx}>{item}</li>
+                      ))}
+                    </ul>
+                  </div>
+                  <div className="bg-white p-3 rounded-xs border border-line">
+                    <span className="font-bold text-ink block mb-1">✉️ Recommender Talking Points</span>
+                    <ul className="space-y-1 text-slate list-disc pl-4">
+                      {sopStrategy.recommendationLetterTips.map((item, idx) => (
+                        <li key={idx}>{item}</li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Application Preparation Checklist */}
