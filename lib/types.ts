@@ -28,6 +28,19 @@ export interface OpportunityMatch {
   confidence: "strong" | "good" | "worth a look";
   estimatedFunding?: string;
   eligibilityTags?: string[];
+  fundingType?: "Fully Funded" | "Tuition Only" | "Partial Stipend" | "Grant / Award";
+  fundingBreakdown?: {
+    tuition?: string;
+    stipend?: string;
+    travel?: string;
+    insurance?: string;
+  };
+  domainType?: "official_edu" | "official_gov" | "verified_foundation" | "organization";
+  eligibilityCheck?: {
+    gpaRequirement?: string;
+    languageRequirement?: string;
+    nationalityEligible?: string;
+  };
 }
 
 export type ApplicationStatus = "Interested" | "Applying" | "Submitted" | "Awarded";

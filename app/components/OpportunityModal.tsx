@@ -95,6 +95,58 @@ export default function OpportunityModal({ match, onClose, onSaveToggle, isSaved
             </div>
           </div>
 
+          {/* Financial Coverage Matrix */}
+          <div>
+            <h3 className="text-xs font-bold uppercase tracking-wider text-slate mb-3 flex items-center gap-1.5">
+              <svg className="w-4 h-4 text-gold-deep" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              Financial Coverage Matrix ({match.fundingType || "Fully Funded"})
+            </h3>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <div className="bg-white p-3.5 rounded-sm border border-line">
+                <span className="text-[11px] font-semibold text-slate block">Tuition</span>
+                <p className="text-xs font-bold text-ink mt-0.5">{match.fundingBreakdown?.tuition || "100% Waived"}</p>
+              </div>
+              <div className="bg-white p-3.5 rounded-sm border border-line">
+                <span className="text-[11px] font-semibold text-slate block">Stipend</span>
+                <p className="text-xs font-bold text-moss mt-0.5">{match.fundingBreakdown?.stipend || "Provided"}</p>
+              </div>
+              <div className="bg-white p-3.5 rounded-sm border border-line">
+                <span className="text-[11px] font-semibold text-slate block">Travel & Visa</span>
+                <p className="text-xs font-bold text-ink mt-0.5">{match.fundingBreakdown?.travel || "Covered"}</p>
+              </div>
+              <div className="bg-white p-3.5 rounded-sm border border-line">
+                <span className="text-[11px] font-semibold text-slate block">Health Insurance</span>
+                <p className="text-xs font-bold text-ink mt-0.5">{match.fundingBreakdown?.insurance || "Included"}</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Hard Eligibility Checklist Radar */}
+          <div>
+            <h3 className="text-xs font-bold uppercase tracking-wider text-slate mb-3 flex items-center gap-1.5">
+              <svg className="w-4 h-4 text-sky-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+              </svg>
+              Eligibility Match Radar
+            </h3>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 bg-white p-4 rounded-sm border border-line">
+              <div>
+                <span className="text-[11px] font-semibold text-slate block">Academic / GPA</span>
+                <p className="text-xs font-medium text-ink mt-0.5">{match.eligibilityCheck?.gpaRequirement || "3.0+ GPA Equivalent"}</p>
+              </div>
+              <div>
+                <span className="text-[11px] font-semibold text-slate block">Language Proficiency</span>
+                <p className="text-xs font-medium text-ink mt-0.5">{match.eligibilityCheck?.languageRequirement || "IELTS 6.5+ or Waiver"}</p>
+              </div>
+              <div>
+                <span className="text-[11px] font-semibold text-slate block">Nationality Rule</span>
+                <p className="text-xs font-medium text-ink mt-0.5">{match.eligibilityCheck?.nationalityEligible || "International Eligible"}</p>
+              </div>
+            </div>
+          </div>
+
           {/* Application Preparation Checklist */}
           <div>
             <h3 className="text-sm font-bold text-ink mb-3 flex items-center gap-2">

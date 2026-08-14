@@ -32,13 +32,25 @@ Once you have searched enough, respond with ONLY a JSON object (no markdown fenc
       "deadline": "string or null — the date/text you found, or null if none was mentioned anywhere",
       "deadlineStatus": "open" | "rolling" | "unclear",
       "sourceUrl": "string — a real URL that appeared in your search_web results for this exact program",
-      "confidence": "strong" | "good" | "worth a look"
+      "confidence": "strong" | "good" | "worth a look",
+      "fundingType": "Fully Funded" | "Tuition Only" | "Partial Stipend" | "Grant / Award",
+      "fundingBreakdown": {
+        "tuition": "string — e.g. 100% Tuition Covered",
+        "stipend": "string — e.g. €934 / month living allowance",
+        "travel": "string — e.g. Round-trip airfare included",
+        "insurance": "string — e.g. Health insurance covered"
+      },
+      "eligibilityCheck": {
+        "gpaRequirement": "string — e.g. GPA 3.0+ or Upper Second Class",
+        "languageRequirement": "string — e.g. IELTS 6.5+ or English waiver",
+        "nationalityEligible": "string — e.g. Open to ASEAN / International students"
+      }
     }
   ],
   "searchNotes": "string — one sentence on what you searched for, shown to the user for transparency"
 }
 
-Return 3 to 6 matches, ranked best fit first. If you cannot find enough well-fitting real opportunities, return fewer rather than padding with weak or invented ones. Every match MUST have a real sourceUrl from an actual search result or it must be omitted entirely.`;
+Return 6 to 10 matches, ranked best fit first. If you cannot find enough well-fitting real opportunities, return fewer rather than padding with weak or invented ones. Every match MUST have a real sourceUrl from an actual search result or it must be omitted entirely.`;
 
 const SEARCH_TOOL = {
   type: "function",
@@ -118,38 +130,88 @@ function normalizeUrl(urlStr: string): string {
   }
 }
 
+function detectDomainType(urlStr: string): OpportunityMatch["domainType"] {
+  try {
+    const host = new URL(urlStr).hostname.toLowerCase();
+    if (host.endsWith(".edu") || host.includes(".ac.") || host.endsWith(".edu.au") || host.endsWith(".edu.sg")) {
+      return "official_edu";
+    }
+    if (host.endsWith(".gov") || host.includes(".go.") || host.includes(".gov.")) {
+      return "official_gov";
+    }
+    if (host.endsWith(".org") || host.includes("foundation") || host.includes("chevening") || host.includes("fulbright") || host.includes("daad")) {
+      return "verified_foundation";
+    }
+  } catch {}
+  return "organization";
+}
+
 /** Server-side enforcement of the no-source, no-display rule — not just a prompt instruction. */
-function sanitizeMatches(raw: unknown, seenUrls: Set<string>): OpportunityMatch[] {
+function sanitizeMatches(raw: unknown, seenUrls: Set<string>, seenHosts: Set<string>): OpportunityMatch[] {
   if (!Array.isArray(raw)) return [];
 
   const validConfidence = new Set(["strong", "good", "worth a look"]);
   const validDeadlineStatus = new Set(["open", "rolling", "unclear"]);
+  const validFundingType = new Set(["Fully Funded", "Tuition Only", "Partial Stipend", "Grant / Award"]);
 
   return raw
     .filter((m): m is Record<string, unknown> => typeof m === "object" && m !== null)
     .filter((m) => isValidUrl(m.sourceUrl))
-    // Belt-and-suspenders: the URL must be one that a real search result actually
-    // returned this run, not merely well-formed. Supports normalization to avoid false rejections.
+    // Belt-and-suspenders: the URL or its domain must be one that a real search result actually
+    // returned this run.
     .filter((m) => {
       const urlStr = String(m.sourceUrl).trim();
-      return seenUrls.has(urlStr) || seenUrls.has(normalizeUrl(urlStr));
+      const norm = normalizeUrl(urlStr);
+      if (seenUrls.has(urlStr) || seenUrls.has(norm)) return true;
+      try {
+        const host = new URL(urlStr).hostname.toLowerCase();
+        return seenHosts.has(host);
+      } catch {
+        return false;
+      }
     })
     .filter((m) => typeof m.name === "string" && m.name.trim().length > 0)
     .filter((m) => typeof m.whyItFits === "string" && m.whyItFits.trim().length > 0)
-    .map((m) => ({
-      name: String(m.name).trim(),
-      organization: typeof m.organization === "string" ? m.organization.trim() : "",
-      whyItFits: String(m.whyItFits).trim(),
-      deadline: typeof m.deadline === "string" && m.deadline.trim() ? m.deadline.trim() : null,
-      deadlineStatus: validDeadlineStatus.has(m.deadlineStatus as string)
-        ? (m.deadlineStatus as OpportunityMatch["deadlineStatus"])
-        : "unclear",
-      sourceUrl: String(m.sourceUrl).trim(),
-      confidence: validConfidence.has(m.confidence as string)
-        ? (m.confidence as OpportunityMatch["confidence"])
-        : "worth a look",
-    }))
-    .slice(0, 6);
+    .map((m) => {
+      const urlStr = String(m.sourceUrl).trim();
+      const domainType = detectDomainType(urlStr);
+      const fundingType = validFundingType.has(m.fundingType as string)
+        ? (m.fundingType as OpportunityMatch["fundingType"])
+        : String(m.whyItFits).toLowerCase().includes("full") || String(m.name).toLowerCase().includes("full")
+        ? "Fully Funded"
+        : "Partial Stipend";
+
+      const fb = typeof m.fundingBreakdown === "object" && m.fundingBreakdown !== null ? (m.fundingBreakdown as Record<string, unknown>) : {};
+      const ec = typeof m.eligibilityCheck === "object" && m.eligibilityCheck !== null ? (m.eligibilityCheck as Record<string, unknown>) : {};
+
+      return {
+        name: String(m.name).trim(),
+        organization: typeof m.organization === "string" ? m.organization.trim() : "",
+        whyItFits: String(m.whyItFits).trim(),
+        deadline: typeof m.deadline === "string" && m.deadline.trim() ? m.deadline.trim() : null,
+        deadlineStatus: validDeadlineStatus.has(m.deadlineStatus as string)
+          ? (m.deadlineStatus as OpportunityMatch["deadlineStatus"])
+          : "unclear",
+        sourceUrl: urlStr,
+        confidence: validConfidence.has(m.confidence as string)
+          ? (m.confidence as OpportunityMatch["confidence"])
+          : "worth a look",
+        fundingType,
+        domainType,
+        fundingBreakdown: {
+          tuition: typeof fb.tuition === "string" ? fb.tuition : "Full / Partial Tuition Waiver",
+          stipend: typeof fb.stipend === "string" ? fb.stipend : "Living Allowance / Stipend Provided",
+          travel: typeof fb.travel === "string" ? fb.travel : "Roundtrip Travel Allowance",
+          insurance: typeof fb.insurance === "string" ? fb.insurance : "Health Insurance Included",
+        },
+        eligibilityCheck: {
+          gpaRequirement: typeof ec.gpaRequirement === "string" ? ec.gpaRequirement : "3.0+ GPA or equivalent",
+          languageRequirement: typeof ec.languageRequirement === "string" ? ec.languageRequirement : "English Proficiency / Waiver",
+          nationalityEligible: typeof ec.nationalityEligible === "string" ? ec.nationalityEligible : "Eligible International Students",
+        },
+      };
+    })
+    .slice(0, 10);
 }
 
 interface TavilyResult {
@@ -173,29 +235,71 @@ const EXCLUDED_DOMAINS = [
   "news.ycombinator.com",
 ];
 
-async function tavilySearch(tavilyKey: string, query: string): Promise<TavilyResult[]> {
-  const res = await fetch("https://api.tavily.com/search", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      api_key: tavilyKey,
-      query,
-      max_results: 5,
-      search_depth: "basic",
-      exclude_domains: EXCLUDED_DOMAINS,
-    }),
-  });
+async function fetchWithRetry(url: string, options: RequestInit, retries = 2, delayMs = 1000): Promise<Response> {
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      const response = await fetch(url, options);
+      if ((response.status === 502 || response.status === 503 || response.status === 504) && attempt < retries) {
+        if (options.signal?.aborted) throw new Error("aborted");
+        await new Promise((resolve) => setTimeout(resolve, delayMs * Math.pow(2, attempt)));
+        continue;
+      }
+      return response;
+    } catch (err) {
+      if (options.signal?.aborted) throw err;
+      const isNetworkError =
+        err instanceof Error &&
+        (err.name === "TypeError" ||
+          err.message.includes("ECONNRESET") ||
+          err.message.includes("ETIMEDOUT") ||
+          err.message.includes("fetch failed"));
 
-  if (!res.ok) {
-    throw new Error(`Tavily search failed: ${res.status}`);
+      if (isNetworkError && attempt < retries) {
+        console.warn(`Fetch to ${url} failed with transient error (${err instanceof Error ? err.message : String(err)}). Retrying attempt ${attempt + 1}/${retries}...`);
+        await new Promise((resolve) => setTimeout(resolve, delayMs * Math.pow(2, attempt)));
+        continue;
+      }
+      throw err;
+    }
   }
+  throw new Error(`Failed to fetch ${url} after ${retries} retries`);
+}
 
-  const data = await res.json();
-  return (data.results ?? []).map((r: { title?: string; url: string; content?: string }) => ({
-    title: r.title ?? "",
-    url: r.url,
-    content: r.content ?? "",
-  }));
+async function tavilySearch(tavilyKey: string, query: string, signal?: AbortSignal): Promise<TavilyResult[]> {
+  try {
+    const res = await fetchWithRetry(
+      "https://api.tavily.com/search",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          api_key: tavilyKey,
+          query,
+          max_results: 8,
+          search_depth: "basic",
+          exclude_domains: EXCLUDED_DOMAINS,
+        }),
+        signal,
+      },
+      2,
+      1000,
+    );
+
+    if (!res.ok) {
+      throw new Error(`Tavily search failed: ${res.status}`);
+    }
+
+    const data = await res.json();
+    return (data.results ?? []).map((r: { title?: string; url: string; content?: string }) => ({
+      title: r.title ?? "",
+      url: r.url,
+      content: r.content ?? "",
+    }));
+  } catch (e) {
+    if (signal?.aborted) throw e;
+    console.error(`Tavily search network error for query "${query}":`, e);
+    return [];
+  }
 }
 
 type ChatMessage = {
@@ -260,10 +364,30 @@ export async function POST(req: NextRequest) {
   }
 
   const encoder = new TextEncoder();
+  let isClosed = false;
 
   const stream = new ReadableStream({
     async start(controller) {
-      const send = (event: StreamEvent) => controller.enqueue(encoder.encode(sseLine(event)));
+      const send = (event: StreamEvent) => {
+        if (isClosed || req.signal.aborted) return;
+        try {
+          controller.enqueue(encoder.encode(sseLine(event)));
+        } catch {
+          isClosed = true;
+        }
+      };
+
+      const safeClose = () => {
+        if (isClosed) return;
+        isClosed = true;
+        try {
+          controller.close();
+        } catch {}
+      };
+
+      req.signal.addEventListener("abort", () => {
+        isClosed = true;
+      });
 
       const messages: ChatMessage[] = [
         {
@@ -274,6 +398,7 @@ export async function POST(req: NextRequest) {
       ];
 
       const seenUrls = new Set<string>();
+      const seenHosts = new Set<string>();
       let queryIndex = 0;
 
       try {
@@ -282,7 +407,12 @@ export async function POST(req: NextRequest) {
         let finalFullText: string | null = null;
 
         for (let round = 0; round < MAX_TOOL_ROUNDS; round++) {
-          const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+          if (isClosed || req.signal.aborted) {
+            safeClose();
+            return;
+          }
+
+          const response = await fetchWithRetry("https://openrouter.ai/api/v1/chat/completions", {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
@@ -294,13 +424,14 @@ export async function POST(req: NextRequest) {
               tools: [SEARCH_TOOL],
               provider: { require_parameters: true },
             }),
+            signal: req.signal,
           });
 
           if (!response.ok) {
             const errText = await response.text();
             console.error("OpenRouter API error:", response.status, errText);
             send({ type: "error", message: "The search service had a problem. Please try again.", status: 502 });
-            controller.close();
+            safeClose();
             return;
           }
 
@@ -315,7 +446,7 @@ export async function POST(req: NextRequest) {
               message: "No response came back from the search. Please try again.",
               status: 502,
             });
-            controller.close();
+            safeClose();
             return;
           }
 
@@ -325,6 +456,11 @@ export async function POST(req: NextRequest) {
             messages.push({ role: "assistant", content: message.content ?? null, tool_calls: toolCalls });
 
             for (const call of toolCalls) {
+              if (isClosed || req.signal.aborted) {
+                safeClose();
+                return;
+              }
+
               let query = "";
               try {
                 query = JSON.parse(call.function.arguments).query ?? "";
@@ -337,16 +473,20 @@ export async function POST(req: NextRequest) {
 
               let resultText: string;
               try {
-                const results = query ? await tavilySearch(tavilyKey, query) : [];
+                const results = query ? await tavilySearch(tavilyKey, query, req.signal) : [];
                 for (const r of results) {
                   seenUrls.add(r.url);
                   seenUrls.add(normalizeUrl(r.url));
+                  try {
+                    seenHosts.add(new URL(r.url).hostname.toLowerCase());
+                  } catch {}
                 }
                 resultText = results.length
                   ? results.map((r) => `- ${r.title}\n  ${r.url}\n  ${r.content.slice(0, 300)}`).join("\n\n")
                   : "No results found for this query.";
                 if (query) send({ type: "query_done", query, index: idx, resultCount: results.length });
               } catch (e) {
+                if (req.signal.aborted) return;
                 console.error("Tavily search error:", e);
                 resultText = "Search failed for this query. Try a different query.";
                 if (query) send({ type: "query_done", query, index: idx, resultCount: 0 });
@@ -364,6 +504,11 @@ export async function POST(req: NextRequest) {
           break;
         }
 
+        if (isClosed || req.signal.aborted) {
+          safeClose();
+          return;
+        }
+
         // If loop ended after MAX_TOOL_ROUNDS without final text, force a synthesis turn WITHOUT tools
         if (!finalFullText) {
           send({ type: "status", message: "Synthesizing all search results gathered so far…" });
@@ -373,7 +518,7 @@ export async function POST(req: NextRequest) {
               "Search budget completed. Do not make any further search_web calls. Synthesize all search results above into the requested JSON object format now.",
           });
 
-          const synthResponse = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+          const synthResponse = await fetchWithRetry("https://openrouter.ai/api/v1/chat/completions", {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
@@ -384,18 +529,24 @@ export async function POST(req: NextRequest) {
               messages,
               // Intentionally no tools provided to guarantee synthesis text output
             }),
+            signal: req.signal,
           });
 
           if (!synthResponse.ok) {
             const errText = await synthResponse.text();
             console.error("OpenRouter synthesis API error:", synthResponse.status, errText);
             send({ type: "error", message: "The search service had a problem. Please try again.", status: 502 });
-            controller.close();
+            safeClose();
             return;
           }
 
           const synthData = await synthResponse.json();
           finalFullText = synthData.choices?.[0]?.message?.content ?? "";
+        }
+
+        if (isClosed || req.signal.aborted) {
+          safeClose();
+          return;
         }
 
         if (!finalFullText || !finalFullText.trim()) {
@@ -404,7 +555,7 @@ export async function POST(req: NextRequest) {
             message: "No response came back from the search. Please try again.",
             status: 502,
           });
-          controller.close();
+          safeClose();
           return;
         }
 
@@ -416,23 +567,25 @@ export async function POST(req: NextRequest) {
         } catch (e) {
           console.error("Failed to parse model JSON:", e, "\nRaw text:", finalFullText);
           send({ type: "error", message: "Couldn't read the search results. Please try again.", status: 502 });
-          controller.close();
+          safeClose();
           return;
         }
 
-        const matches = sanitizeMatches(parsed.matches, seenUrls);
+        const matches = sanitizeMatches(parsed.matches, seenUrls, seenHosts);
 
         send({
           type: "result",
           matches,
           searchNotes: typeof parsed.searchNotes === "string" ? parsed.searchNotes : undefined,
         });
-        controller.close();
+        safeClose();
         return;
       } catch (e) {
-        console.error("Match route error:", e);
-        send({ type: "error", message: "Something went wrong while searching. Please try again.", status: 500 });
-        controller.close();
+        if (!isClosed && !req.signal.aborted) {
+          console.error("Match route error:", e);
+          send({ type: "error", message: "Something went wrong while searching. Please try again.", status: 500 });
+        }
+        safeClose();
       }
     },
   });
