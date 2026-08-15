@@ -440,10 +440,20 @@ export async function POST(req: NextRequest) {
           const message = choice?.message;
 
           if (!message) {
-            console.error("No message in OpenRouter response:", JSON.stringify(data));
+            const errorDetails = JSON.stringify(data, null, 2);
+            console.error("No message in OpenRouter response:", errorDetails);
+            
+            // Check for specific error patterns
+            let userMessage = "No response came back from the search. Please try again.";
+            if (data.error?.message?.includes("quota")) {
+              userMessage = "Search quota exceeded. Please try again later.";
+            } else if (data.error?.message?.includes("authentication")) {
+              userMessage = "Server authentication issue. Please try again.";
+            }
+            
             send({
               type: "error",
-              message: "No response came back from the search. Please try again.",
+              message: userMessage,
               status: 502,
             });
             safeClose();

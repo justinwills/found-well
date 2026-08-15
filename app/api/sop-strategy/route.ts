@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import type { StudentProfile, OpportunityMatch, SOPStrategy } from "@/lib/types";
+import { fetchWithRetry } from "@/lib/fetch-with-retry";
 
 export const maxDuration = 60;
 
@@ -66,34 +67,59 @@ Target Scholarship / Opportunity:
 
 Generate the SOP Strategy Blueprint now in JSON format.`;
 
-    const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${openRouterKey}`,
-        "Content-Type": "application/json",
-        "HTTP-Referer": "https://foundwell.app",
-        "X-Title": "Foundwell AI SOP Strategy",
+    const res = await fetchWithRetry(
+      "https://openrouter.ai/api/v1/chat/completions",
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${openRouterKey}`,
+          "Content-Type": "application/json",
+          "HTTP-Referer": "https://foundwell.app",
+          "X-Title": "Foundwell AI SOP Strategy",
+        },
+        body: JSON.stringify({
+          model: MODEL,
+          messages: [
+            { role: "system", content: SOP_SYSTEM_PROMPT },
+            { role: "user", content: userPrompt },
+          ],
+          temperature: 0.7,
+        }),
+        signal: req.signal,
       },
-      body: JSON.stringify({
-        model: MODEL,
-        messages: [
-          { role: "system", content: SOP_SYSTEM_PROMPT },
-          { role: "user", content: userPrompt },
-        ],
-        temperature: 0.7,
-      }),
-    });
+      2,
+      1000,
+    );
 
     if (!res.ok) {
       const errText = await res.text();
+      console.error(`SOP strategy: OpenRouter returned ${res.status}:`, errText.slice(0, 500));
       return NextResponse.json(
-        { error: `LLM API Error (${res.status}): ${errText.slice(0, 200)}` },
-        { status: res.status }
+        { error: `The strategy service had a problem (${res.status}). Please try again.` },
+        { status: 502 },
       );
     }
 
     const data = await res.json();
     const rawText = data.choices?.[0]?.message?.content ?? "";
+
+    if (!rawText.trim()) {
+      const fullResponseData = JSON.stringify(data, null, 2);
+      console.error("SOP strategy: OpenRouter returned an empty response.", fullResponseData.slice(0, 1000));
+      
+      // Check for specific error patterns
+      let userMessage = "No response came back from the strategy service. Please try again.";
+      if (data.error?.message?.includes("quota")) {
+        userMessage = "Service quota exceeded. Please try again later.";
+      } else if (data.error?.message?.includes("authentication")) {
+        userMessage = "Server authentication issue. Please try again.";
+      }
+      
+      return NextResponse.json(
+        { error: userMessage },
+        { status: 502 },
+      );
+    }
 
     // Extract JSON from response
     let jsonText = rawText.trim();
@@ -108,29 +134,48 @@ Generate the SOP Strategy Blueprint now in JSON format.`;
       }
     }
 
-    const parsed: SOPStrategy = JSON.parse(jsonText);
-    return NextResponse.json(parsed);
-  } catch {
-    // Return a structured fallback if LLM parsing fails or openrouter returns non-JSON
-    return NextResponse.json({
-      targetProgram: "Target Opportunity Strategy",
-      winningAngle: "Highlight your unique cross-cultural background and technical trajectory alignment with the host institution's strategic goals.",
-      recommendedTheme: "Academic Excellence & Regional Social Impact",
-      essayOutline: {
-        hook: "Begin with a pivotal moment in your academic or professional journey that sparked your specialization in this field.",
-        academicBackground: "Detail 2-3 key achievements, projects, or thesis work that prove your capability to excel in advanced coursework.",
-        whyThisProgram: "Specify distinct research labs, faculty members, or curriculum modules unique to this scholarship's host organization.",
-        futureImpact: "Articulate a clear 5-year vision demonstrating how this degree will empower you to solve challenges in your target sector."
-      },
-      cvRecommendations: [
-        "Quantify project outcomes (e.g. 'Improved model accuracy by 14%', 'Managed $5K research budget').",
-        "Place relevant publications, leadership roles, or honors in the top third of your resume.",
-        "Add a dedicated 'Key Skills & Frameworks' section tailored to the program's requirements."
-      ],
-      recommendationLetterTips: [
-        "Ask recommenders to speak to your initiative, analytical rigor, and resilience under deadline pressures.",
-        "Provide your recommenders with a 1-page summary of your top achievements and your target SOP draft."
-      ]
-    });
+    let parsed: SOPStrategy;
+    try {
+      parsed = JSON.parse(jsonText);
+    } catch (e) {
+      // The model responded, but not with valid JSON — a real failure, not
+      // a network blip. Fail honestly rather than silently substituting
+      // generic advice the user would mistake for a tailored result.
+      console.error("SOP strategy: failed to parse model JSON:", e, "\nRaw text:", rawText.slice(0, 500));
+      return NextResponse.json(
+        { error: "Couldn't read the strategy response. Please try again." },
+        { status: 502 },
+      );
+    }
+
+    // Sanity-check the shape actually matches what the UI expects. A model
+    // can return syntactically valid JSON that's still missing fields.
+    const hasRequiredShape =
+      typeof parsed?.targetProgram === "string" &&
+      typeof parsed?.winningAngle === "string" &&
+      typeof parsed?.essayOutline?.hook === "string" &&
+      Array.isArray(parsed?.cvRecommendations) &&
+      Array.isArray(parsed?.recommendationLetterTips);
+
+    if (!hasRequiredShape) {
+      console.error("SOP strategy: model JSON parsed but missing required fields:", JSON.stringify(parsed).slice(0, 500));
+      return NextResponse.json(
+        { error: "The strategy response was incomplete. Please try again." },
+        { status: 502 },
+      );
+    }
+
+    return NextResponse.json(parsed satisfies SOPStrategy);
+  } catch (e) {
+    // A genuine unexpected error (network failure reaching OpenRouter,
+    // request body issues, etc). Return a real error — never silently swap
+    // in identical generic advice a user could mistake for a tailored
+    // result. If this keeps happening, it belongs in server logs, not
+    // papered over.
+    console.error("SOP strategy route error:", e);
+    return NextResponse.json(
+      { error: "Something went wrong while building the strategy. Please try again." },
+      { status: 500 },
+    );
   }
 }

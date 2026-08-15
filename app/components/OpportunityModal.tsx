@@ -37,12 +37,21 @@ export default function OpportunityModal({ match, profile, onClose, onSaveToggle
         body: JSON.stringify({ profile, match }),
       });
       if (!res.ok) {
-        throw new Error("Failed to generate SOP strategy");
+        let message = "Couldn't generate strategy blueprint. Please try again.";
+        try {
+          const errBody = await res.json();
+          if (typeof errBody?.error === "string" && errBody.error.trim()) {
+            message = errBody.error;
+          }
+        } catch {
+          // response wasn't JSON either — keep the generic message
+        }
+        throw new Error(message);
       }
       const data: SOPStrategy = await res.json();
       setSopStrategy(data);
-    } catch {
-      setSopError("Couldn't generate strategy blueprint. Please try again.");
+    } catch (e) {
+      setSopError(e instanceof Error ? e.message : "Couldn't generate strategy blueprint. Please try again.");
     } finally {
       setLoadingSOP(false);
     }
