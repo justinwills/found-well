@@ -3,11 +3,12 @@ import type { StudentProfile, OpportunityMatch } from "@/lib/types";
 
 export const maxDuration = 60;
 
-// OpenRouter's own free-model auto-router. Requesting `tools` support means it
-// only selects among free models that can actually do function calling, so this
-// keeps working even as individual :free model IDs rotate in and out.
-const MODEL = "openrouter/free";
-const MAX_TOOL_ROUNDS = 4;
+// `openrouter/free` is an auto-routing model and can intermittently emit raw XML
+// tool-call text instead of a proper JSON function call payload. Use a stable
+// model that supports tool calling and keep the search loop short to stay under
+// Vercel's runtime limits.
+const MODEL = process.env.OPENROUTER_MODEL || "openai/gpt-4o-mini";
+const MAX_TOOL_ROUNDS = 2;
 
 const SYSTEM_PROMPT = `You are Foundwell's research assistant. You help students find real scholarships and funded opportunities that genuinely fit them.
 
@@ -105,6 +106,39 @@ function extractJson(text: string): string {
     return text.slice(start, end + 1);
   }
   return text.trim();
+}
+
+function extractToolCallsFromText(content: string): ChatMessage["tool_calls"] {
+  if (!content || !content.includes("<tool_call")) return undefined;
+
+  const toolCalls: ChatMessage["tool_calls"] = [];
+  const matches = [...content.matchAll(/<tool_call>([\s\S]*?)<\/tool_call>/g)];
+
+  for (const [index, match] of matches.entries()) {
+    const raw = match[1];
+    const nameMatch = raw.match(/<tool_name>([\s\S]*?)<\/tool_name>|<name>([\s\S]*?)<\/name>/i);
+    const name = nameMatch?.[1] ?? nameMatch?.[2] ?? "";
+    const args: Record<string, string> = {};
+
+    for (const argMatch of raw.matchAll(/<arg_key>([\s\S]*?)<\/arg_key>\s*<arg_value>([\s\S]*?)<\/arg_value>/g)) {
+      const key = argMatch[1]?.trim();
+      const value = argMatch[2]?.trim();
+      if (key) args[key] = value ?? "";
+    }
+
+    if (!name) continue;
+
+    toolCalls.push({
+      id: `xml-tool-${index}`,
+      type: "function",
+      function: {
+        name,
+        arguments: JSON.stringify(args),
+      },
+    });
+  }
+
+  return toolCalls.length ? toolCalls : undefined;
 }
 
 function isValidUrl(value: unknown): value is string {
@@ -460,7 +494,7 @@ export async function POST(req: NextRequest) {
             return;
           }
 
-          const toolCalls = message.tool_calls as ChatMessage["tool_calls"];
+          const toolCalls = (message.tool_calls as ChatMessage["tool_calls"]) ?? extractToolCallsFromText(message.content ?? "");
 
           if (toolCalls && toolCalls.length > 0) {
             messages.push({ role: "assistant", content: message.content ?? null, tool_calls: toolCalls });
