@@ -270,7 +270,7 @@ export default function Home() {
                 <span className="text-xs font-bold uppercase tracking-widest text-gold-deep">
                   Interactive Search Engine
                 </span>
-                <h2 className="font-display text-3xl sm:text-4xl italic text-ink font-bold mt-1">
+                <h2 className="font-display text-3xl sm:text-4xl text-ink font-bold mt-1 tracking-tight">
                   Find your verified opportunities now
                 </h2>
               </div>
@@ -404,7 +404,7 @@ export default function Home() {
                   <div className="border-t border-line mt-8 pt-8 animate-fade-in">
                     {matches.length === 0 ? (
                       <div className="text-center py-10">
-                        <p className="font-display text-xl text-ink italic mb-2">
+                        <p className="font-display text-xl text-ink font-semibold mb-2">
                           No verifiable opportunities matched this run.
                         </p>
                         <p className="text-slate text-sm max-w-sm mx-auto">
@@ -414,7 +414,7 @@ export default function Home() {
                     ) : (
                       <>
                         <div className="flex items-center justify-between mb-6">
-                          <h3 className="font-display text-2xl text-ink italic font-bold">
+                          <h3 className="font-display text-2xl text-ink font-bold tracking-tight">
                             {matches.length} verified {matches.length === 1 ? "opportunity" : "opportunities"} found
                           </h3>
                         </div>
@@ -466,7 +466,7 @@ export default function Home() {
               <span className="text-xs font-semibold uppercase tracking-widest text-gold-deep">
                 Live Search Tool
               </span>
-              <h1 className="font-display text-3xl sm:text-5xl italic text-ink font-bold mt-1">
+              <h1 className="font-display text-3xl sm:text-5xl text-ink font-bold mt-1 tracking-tight">
                 Search verified opportunities
               </h1>
               <p className="text-slate text-sm sm:text-base mt-2">
@@ -590,7 +590,7 @@ export default function Home() {
                 <div className="border-t border-line mt-8 pt-8 animate-fade-in">
                   {matches.length === 0 ? (
                     <div className="text-center py-10">
-                      <p className="font-display text-xl text-ink italic mb-2">
+                      <p className="font-display text-xl text-ink font-semibold mb-2">
                         No verifiable opportunities matched this query.
                       </p>
                       <p className="text-slate text-sm max-w-sm mx-auto">
@@ -600,7 +600,7 @@ export default function Home() {
                   ) : (
                     <>
                       <div className="flex items-center justify-between mb-6">
-                        <h3 className="font-display text-2xl text-ink italic font-bold">
+                        <h3 className="font-display text-2xl text-ink font-bold tracking-tight">
                           {matches.length} verified {matches.length === 1 ? "match" : "matches"} found
                         </h3>
                       </div>

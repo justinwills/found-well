@@ -126,7 +126,7 @@ export default function SavedTracker({
           <span className="text-xs font-semibold uppercase tracking-widest text-gold-deep">
             Personal Application Workspace
           </span>
-          <h2 className="font-display text-3xl sm:text-4xl text-ink italic font-bold">
+          <h2 className="font-display text-3xl sm:text-4xl text-ink font-bold tracking-tight">
             Saved Opportunities ({savedList.length})
           </h2>
         </div>
@@ -212,7 +212,7 @@ export default function SavedTracker({
           <div className="mx-auto mb-4 h-12 w-12 rounded-full border-2 border-dashed border-line flex items-center justify-center text-slate">
             ★
           </div>
-          <h3 className="font-display text-2xl text-ink italic mb-2">No saved opportunities yet</h3>
+          <h3 className="font-display text-2xl text-ink font-bold mb-2">No saved opportunities yet</h3>
           <p className="text-slate text-sm max-w-md mx-auto mb-6">
             When you run a search, click the star icon on any match to save it to your personal application workspace here.
           </p>

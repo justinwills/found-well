@@ -35,11 +35,13 @@ export default function Navbar({ activeTab, setActiveTab, savedCount, onStartSea
           onClick={() => handleNav("home")}
           className="flex items-center gap-3 group text-left focus:outline-none cursor-pointer"
         >
-          <div className="h-9 w-9 rounded-xl bg-ink flex items-center justify-center text-paper font-display italic font-bold text-xl shadow-md group-hover:bg-ink-soft transition-colors">
-            F
-          </div>
+          <img
+            src="/logo.jpg"
+            alt="Foundwell Logo"
+            className="h-9 w-9 rounded-xl object-cover shadow-sm group-hover:scale-105 transition-transform"
+          />
           <div className="flex items-center gap-2">
-            <span className="font-display italic text-2xl font-bold tracking-tight text-ink">
+            <span className="font-display text-2xl font-bold tracking-tight text-ink">
               Foundwell
             </span>
             <span className="hidden sm:inline-block text-[10px] font-bold uppercase tracking-widest px-2.5 py-0.5 rounded-full bg-teal-50 text-teal-800 border border-teal-200">

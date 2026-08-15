@@ -18,12 +18,12 @@ export default function HeroSection({ onStartSearch }: HeroSectionProps) {
             {/* Pill Tagline */}
             <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-teal-50 border border-teal-200 text-teal-800 text-xs font-semibold uppercase tracking-wider animate-fade-up">
               <span className="h-2 w-2 rounded-full bg-teal-600 animate-pulse" />
-              <span>Real-Time Web Verification · No Dead 404 Links</span>
+              <span>Real-Time Web Verification</span>
             </div>
 
             {/* Display Headline */}
-            <h1 className="font-display text-4xl sm:text-6xl lg:text-7xl leading-[1.05] text-ink italic tracking-tight font-normal">
-              Somewhere, a scholarship is already <span className="not-italic font-sans font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-ink via-ink-soft to-amber-700">meant for you.</span>
+            <h1 className="font-display text-4xl sm:text-6xl lg:text-7xl leading-[1.05] text-ink tracking-tight font-extrabold">
+              Somewhere, a scholarship is already <span className="font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-amber-600 via-amber-700 to-ink">meant for you.</span>
             </h1>
 
             {/* Subhead Description */}
