@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import type { OpportunityMatch, SavedOpportunity, StudentProfile, SOPStrategy } from "@/lib/types";
+import type { OpportunityMatch, StudentProfile, SOPStrategy } from "@/lib/types";
 
 interface OpportunityModalProps {
   match: OpportunityMatch | null;

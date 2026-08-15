@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 
 interface NavbarProps {
   activeTab: "home" | "search" | "saved" | "faq";
@@ -35,10 +36,12 @@ export default function Navbar({ activeTab, setActiveTab, savedCount, onStartSea
           onClick={() => handleNav("home")}
           className="flex items-center gap-3 group text-left focus:outline-none cursor-pointer"
         >
-          <img
+          <Image
             src="/logo.jpg"
             alt="Foundwell Logo"
-            className="h-9 w-9 rounded-xl object-cover shadow-sm group-hover:scale-105 transition-transform"
+            width={36}
+            height={36}
+            className="rounded-xl object-cover shadow-sm group-hover:scale-105 transition-transform"
           />
           <div className="flex items-center gap-2">
             <span className="font-display text-2xl font-bold tracking-tight text-ink">

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import Navbar from "@/app/components/Navbar";
 import HeroSection from "@/app/components/HeroSection";
 import SearchPresets from "@/app/components/SearchPresets";
@@ -50,21 +50,16 @@ export default function Home() {
   const [steps, setSteps] = useState<SearchStep[]>([]);
   
   // Saved opportunities state persisted in localStorage
-  const [savedList, setSavedList] = useState<SavedOpportunity[]>([]);
+  const [savedList, setSavedList] = useState<SavedOpportunity[]>(() => {
+    try {
+      const item = typeof window !== "undefined" ? localStorage.getItem("foundwell_saved_opps") : null;
+      return item ? JSON.parse(item) : [];
+    } catch {
+      return [];
+    }
+  });
   const [selectedModalMatch, setSelectedModalMatch] = useState<OpportunityMatch | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
-
-  // Load saved opportunities on initial mount
-  useEffect(() => {
-    try {
-      const item = localStorage.getItem("foundwell_saved_opps");
-      if (item) {
-        setSavedList(JSON.parse(item));
-      }
-    } catch {
-      // Ignore localStorage read errors
-    }
-  }, []);
 
   // Sync saved opportunities to localStorage
   function persistSavedList(newList: SavedOpportunity[]) {
